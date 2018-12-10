@@ -1,0 +1,3 @@
+Sources for Velleman K8800 Delta LM10UU Linear Bearing Upgrade
+
+VERTEX DELTA K8800 3D printer (https://www.thingiverse.com/thing:2603252)
