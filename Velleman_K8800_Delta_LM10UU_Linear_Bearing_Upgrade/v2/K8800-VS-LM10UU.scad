@@ -8,30 +8,48 @@
 // to gain up to 5mm of bonus Z-Axis travel.  set (bonus = 0) to preserve the
 // stock height of the original part.
 
+// fence for inner punches (>= layer heigth)
+guard = 0.2;        
+
+// EMBEDED=0, LM10UU=1, RJ4JP=2, RJUM1=3
+bearing_type = 3;
+
+// endstop heigth above carriage
+endstop = 10;
+
+// enable/disable bearing brim
+enable_brim = 1;
+
+// Bonus height?  0 to disable
+bonus = 5;
+
+// the following parameters are not changeable via Customizer...
+module dont_show_in_customizer() {
+}
 
 $fn = 64;
-
-// printer parameters
-guard = 0.2;        // guard fence for inner punches
-nozzle_d = 0.35;    // K8800 default nozzle
-
-rod_dist  = 60;     // distance between center of slides
-rod_dist2 = rod_dist / 2; 
 
 // supported bearing types
 EMBEDED= 0;     // embedded bearing 
 LM10UU = 1;     // Metric Linear Bearing, steal
-RJUM1  = 2;     // drylin self-lubricating polymer, alu shell
-RJ4JP  = 3;     // drylin self-lubricating polymer
+RJ4JP  = 2;     // drylin self-lubricating polymer
+RJUM1  = 3;     // drylin self-lubricating polymer, alu shell
 
-// settings for carriage
-btype=RJ4JP;        // the bearing type used
-endstop = 10;       // endstop heigth above carriage
-enable_brim = 1;    // control top/bottom brim for bearing. set to 0 if you don't want them...
+rod_dist  = 60;     // distance between center of slides
+rod_dist2 = rod_dist / 2; 
 
-bonus = 5;      // Bonus height?  0 to disable
+horn_xy = 10;
+horn_z = 7;
+horn_d = 10;
 
-// endstop definition
+nozzle_d = 0.35;    // K8800 default nozzle
+
+// extrusion control - read the source, Luke
+slop = 0;
+slug_dh = 10;
+slug_slop = 0.5;
+
+// endstop definitions
 // the endstop consists of two parts:
 // - endstop_base - the overall height of the part inserted into the carrier
 //                  default: 10mm, bonus: 15.0mm
@@ -54,20 +72,11 @@ bolt_a = 5.5;
 bolt_b = 5.3;
 nut = 10;//9.64;
 
-slop = 0;
-slug_dh = 10;
-slug_slop = 0.5;
-
 // zip-tie 
 tie_l = 20;      // Length of tie-wrap
 tie_w = 1.5;     // tie-wrap slot width
 tie_h = 3;       // tie-wrap slot height
 tie_toe = 30;    // tie-wrap toe-in angle
-
-horn_xy = 10;
-horn_z = 7;
-horn_d = 10;
-
 
 // option: top and bottom brim to keep bearing in carriage
 bearing_bb = enable_brim ? 3 * nozzle_d : 0;  // bottom brim heigth
@@ -79,9 +88,9 @@ bearing_dr = 10.0;  // inner diameter (shaft)
 bearing_D  = 19.0;  // outer diameter
 
 // type specific dimensions (RJ4JP and LM10UU are identical)
-bearing_B = (btype==RJUM1) ? 21.6 : 22.0;   // spacing of the circlip grooves (top to bottom)
-bearing_W = (btype==RJUM1) ?  1.3 : 1.3;    // circlip groove width
-bearing_D1= (btype==RJUM1) ? 17.5 : 18.0;   // slot (groove) diameter
+bearing_B = (bearing_type==RJUM1) ? 21.6 : 22.0;   // spacing of the circlip grooves (top to bottom)
+bearing_W = (bearing_type==RJUM1) ?  1.3 : 1.3;    // circlip groove width
+bearing_D1= (bearing_type==RJUM1) ? 17.5 : 18.0;   // slot (groove) diameter
 
 // computed dimensions 
 bearing_h0 = (bearing_L - bearing_B) / 2;   // height of start of circlip groove
@@ -117,7 +126,7 @@ module bearing_2D(offset=0) {
     polygon(points=outline);
 }
 
-// bearing model - for completeness only
+// bearing model - for completeness/debugging  only - not explicitly used
 module bearing_3D() {
     $fn=90;
     difference(){
@@ -133,6 +142,7 @@ module bearing_3D() {
 
 // bearing with 'guard' offset for use in punchmask
 module bearing_punch() {
+    // offset(delta=guard) is used because of possible over-extrusion
     $fn=90;
     color("green")
     translate([0,0,0])
@@ -144,17 +154,16 @@ module bearing_punch() {
 }
 
 module bearing_punchmask() {
-    // a) The punchmask diameter is 'bearing_D' extended by twice the
+    // a) The punchmask diameter is 'D' as extended in module bearing_punch()
     //    'guard'. That's because of the filament expansion during 
     //    extrusion.
     // b) We add a shaft to punch through the carriage.
-    //    For 'enable_brim'==1 the shaft diameter is 'bearing_dr' + 4mm.
+    //    For 'enable_brim'==1 the shaft diameter is 'bearing_D' - 2.0mm.
     //    Otherwise we use the punchmask diameter for the shaft.
-
 
     L_punch = bearing_L + 2*guard;    // bearing_punch heigth
     D_punch = bearing_D + 2*guard;    // bearing_punch diameter
-    D_shaft = enable_brim ? bearing_dr + 4.0 : D_punch;    // space for rod...
+    D_shaft = enable_brim ? D_punch - 2.0  : D_punch;    // space for rod...
     
     union() {
         // punch through shaft
@@ -196,18 +205,34 @@ module lm10UU()
 
 
 // development - import Velleman CAD object
+//
 module belt_catch() {
-//    import("/bay/Development/3D-Print/Vertex-Delta-CAD/K8800-BC/K8800-BC.stl");
+// measured dimensions of the "belt catch"
+//  bounding box:   X=16.5, Y=36
+//  center of bb:   X=8.25, Y=18.0
+//  mounting hole:  X=5, Y=18, D=5.5
+//  off be1t fetch: X=13.1 (12.75/13.5)
+//  nose:           X=5, Y=30.5
+//                  D=3.5
+//  corners (left): r=3.0
+//      x0,y0:      3.0, 3.0
+//      x0,yMax:    3.0, 33.0
+
+    import("/bay/Development/3D-Print/Vertex-Delta-CAD/K8800-BC/K8800-BC.stl");
 }
 
-module belt_connector_block() {
+
+module connector_block_2d() {
+}
+
+module connector_block() {
         // will be replaced by 2D extrusion...
         cube([15,22,carriage_h+5+bonus]);
 }
 
 module belt_connector() {
     translate([-22,-22/2,-carriage_h/2])
-        belt_connector_block();
+        connector_block();
     // Belt retainer alignment tab:
     translate([-(1.8+11.75),-endstop_toe_w/2,-carriage_h/2]) 
         cube([endstop_tab_l,endstop_toe_w,endstop_toe_h]);
@@ -401,7 +426,11 @@ module printable_set()
         rotate([90,0,180])
             actuator_tab();
 
-// debug
+    // === debug ===
+*    color("green")
+    translate([0,10,10+carriage_h])
+        rotate([90,0,90])
+            belt_catch();
 *    translate([0,0,carriage_h/2])
         rotate([0,0,0])
             new_carriage();
