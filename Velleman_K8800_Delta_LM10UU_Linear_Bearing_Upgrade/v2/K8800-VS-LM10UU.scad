@@ -20,10 +20,21 @@ endstop = 10;
 // enable/disable bearing brim
 enable_brim = 1;
 
+// set to 1 to print the carriage
+print_sled = 0;
+
+// set to 1 to print the actuator
+print_actuator = 0;
+
 // Bonus height?  0 to disable
 bonus = 5;
 
-// the following parameters are not changeable via Customizer...
+// disable/enable debug
+debug = 0;
+
+// offset for horn and magnetic bolts
+joint_o = 0.55;
+// this dummy hides the following vars in Customizer
 module dont_show_in_customizer() {
 }
 
@@ -35,14 +46,26 @@ LM10UU = 1;     // Metric Linear Bearing, steal
 RJ4JP  = 2;     // drylin self-lubricating polymer
 RJUM1  = 3;     // drylin self-lubricating polymer, alu shell
 
-rod_dist  = 60;     // distance between center of slides
-rod_dist2 = rod_dist / 2; 
+// ------------------------------------------
+// fixed parameters (given by printer design)
+
+// the rods
+d_RD10  = 60;       // distance between center of rods
+d_RD10_2 = d_RD10/2; 
+RD10_d  = 10;       // rod diameter
+
+// the belt catch
+BC_z = 36.0;    // height of belt catch
+BC_x = 16.0;    // thicknes of belt catch
+BC_y = 2* 11.5; // assymetrical hole!
+
+nozzle_d = 0.35;    // K8800 default nozzle
+// ------------------------------------------
 
 horn_xy = 10;
 horn_z = 7;
 horn_d = 10;
 
-nozzle_d = 0.35;    // K8800 default nozzle
 
 // extrusion control - read the source, Luke
 slop = 0;
@@ -98,11 +121,111 @@ bearing_h1 = bearing_h0 + bearing_W;        // height of end of circlip grooves
 
 L_shaft = 3.0;  // (save) length of punch through shaft for bearing top/bottom
 
-// carriage_h = 30;    // carriage height
-
-carriage_h = (1 + bearing_L) + bearing_bb + bearing_tb;
+// VS (vertical slight
+// carriage_h = (1 + bearing_L) + bearing_bb + bearing_tb;
+carriage_h = (bearing_L) + bearing_bb + bearing_tb;
 
 echo("carriage heigth:", carriage_h);
+
+// ----------------------------------------
+// development - import Velleman CAD object
+//
+module belt_catch() {
+// measured dimensions of the "belt catch"
+//  bounding box:   X=16, Y=36
+//  center of bb:   X=8, Y=18.0
+//  mounting hole:  X=5, Y=18, D=5.5
+//  off be1t fetch: X=13 (12.75/13.5)
+//  nose:           X=5, Y=30
+//                  D=3.5
+//  corners (left): r=3.0
+//      x0,y0:      3.0, 3.0
+//      x0,yMax:    3.0, 33.0
+
+    // [0,0,0] center of bolt
+    translate([-20,-carriage_h,-00])
+        rotate([0,0,180])
+            import("/bay/Development/3D-Print/Vertex-Delta-CAD/K8800-BC/K8800-BC.stl");
+}
+
+// ----------------------------------------
+// actuator_tab
+// we use a triangle shape for the base so we can print w/o support
+module actuator_tab(len=endstop) {
+    color("green") {
+    xr=endstop_base_knob/2; xl=-xr;
+    xbr=endstop_tab_w/2; xbl=-xbr;
+    yb=endstop_tab_l/2;
+    z=endstop_base_l;
+    
+    l = endstop_base_l + len;  
+    polyhedron( points=[
+            [xl,0,0],[xr,0,0],
+            [xbr,yb,0],[xbl,yb,0],
+            [xl,0,z],[xr,0,z],
+            [xbr,yb,z],[xbl,yb,z]], 
+        faces=[
+            [0,1,2,3],  // bottom
+            [4,5,1,0],  // front
+            [7,6,5,4],  // top
+            [5,6,2,1],  // right
+            [6,7,3,2],  // back
+            [7,4,0,3]]  // left
+        );
+    translate([-endstop_tab_w/2,0,0]) 
+        cube([endstop_tab_w, endstop_tab_l, l]);
+    }
+}
+
+// the shape to be punched out of the carrier
+module actuator_punch() {
+    linear_extrude(height=endstop_base_l)
+        offset(delta=endstop_tab_offset)
+            rotate([0,0,-90])
+                projection()
+                    actuator_tab();
+}
+
+
+// ----------------------------------------
+// connector block - holding the belt catch
+//
+module connector_block() {
+    // mount hole: x=, y=, D=
+    // bounding box: x=22, y=36
+    bby=22; bby2=bby/2; // bounding box x/2
+    bbx=15; bbx2=bbx/2; // bounding box y/2
+    edge=5.5;           // edge to avoid belt contact
+    
+    2D_shape=[
+        [0,bby2-edge], 
+        [-edge,bby2],
+        [-bbx,bby2],
+        [-bbx,-bby2],
+        [0,-bby2],
+        [0,0]
+    ];
+    
+    color("blue")
+        linear_extrude(height=BC_z)
+            polygon(2D_shape);
+
+    // Belt retainer alignment tab
+    toe_x = 3.2;
+    toe_y = 2.7;
+    toe_z = 6.75;
+    toe_r = toe_y/2;
+
+    color("green")
+    translate([toe_x,-toe_r,toe_z-toe_r])
+    rotate([-90,0,90])
+    linear_extrude(height=toe_x)
+        union() {
+            square(size=[toe_y,toe_z-toe_r]);
+            translate([toe_y/2,0,0])
+                circle(d=toe_y);
+        };
+}
 
 // punch mask for bearing
 // the model is used as punching mask for the carrier, so we have
@@ -140,17 +263,19 @@ module bearing_3D() {
     }
 }
 
-// bearing with 'guard' offset for use in punchmask
 module bearing_punch() {
-    // offset(delta=guard) is used because of possible over-extrusion
-    $fn=90;
-    color("green")
+// bearing with 'guard' offset for use in punchmask
+    // object is at [0,0,0]. 
+    // The variables zMax and D are only used to show the effective 
+    // size after applying the offset(xxx) function
+    D=bearing_D + 2* guard;
+    zMax = bearing_L + 2* guard;
+    
+    color("red")
     translate([0,0,0])
         rotate_extrude($fn = 90)
-            offset(delta=guard)    // extend shape by delta
-                bearing_2D(guard); // offset from delta
-    // object is at [0,0,0]. Because of offset(xxx) effective
-    //   zMax = bearing_L + 2* guard, D=bearing_D + 2* guard
+            offset(delta=guard)
+                bearing_2D(guard);
 }
 
 module bearing_punchmask() {
@@ -165,6 +290,7 @@ module bearing_punchmask() {
     D_punch = bearing_D + 2*guard;    // bearing_punch diameter
     D_shaft = enable_brim ? D_punch - 2.0  : D_punch;    // space for rod...
     
+    color("FireBrick")
     union() {
         // punch through shaft
         translate([0,0,0])
@@ -176,6 +302,28 @@ module bearing_punchmask() {
     }
     // zMax = bearing_L + 2* guard + 2* L_shaft
 }
+
+module horn()
+{
+    color("red") {
+    horn_d = 10;
+    rotate([0,0,90])
+    intersection()
+    {
+      translate([-100,0,0]) cube([200,200,15]);
+        difference()
+        {
+            translate([0,3,0]) rotate([40,0,0]) union()
+            {
+                translate([0,horn_d,-10]) cylinder(d=horn_d,h=BC_z);
+                translate([-(horn_d/2),0,-10]) cube([horn_d,horn_d,BC_z]);
+            }
+            rotate([90,0,0]) cylinder(d=horn_d+1,h=100, center=true);
+        }
+    }
+  }
+}
+
 
 module lm10UU()
 {
@@ -204,72 +352,31 @@ module lm10UU()
 }
 
 
-// development - import Velleman CAD object
-//
-module belt_catch() {
-// measured dimensions of the "belt catch"
-//  bounding box:   X=16.5, Y=36
-//  center of bb:   X=8.25, Y=18.0
-//  mounting hole:  X=5, Y=18, D=5.5
-//  off be1t fetch: X=13.1 (12.75/13.5)
-//  nose:           X=5, Y=30.5
-//                  D=3.5
-//  corners (left): r=3.0
-//      x0,y0:      3.0, 3.0
-//      x0,yMax:    3.0, 33.0
-
-    import("/bay/Development/3D-Print/Vertex-Delta-CAD/K8800-BC/K8800-BC.stl");
-}
-
-
-module connector_block_2d() {
-}
-
-module connector_block() {
-        // will be replaced by 2D extrusion...
-        cube([15,22,carriage_h+5+bonus]);
-}
-
-module belt_connector() {
-    translate([-22,-22/2,-carriage_h/2])
-        connector_block();
-    // Belt retainer alignment tab:
-    translate([-(1.8+11.75),-endstop_toe_w/2,-carriage_h/2]) 
-        cube([endstop_tab_l,endstop_toe_w,endstop_toe_h]);
-    translate([-(1.8+3.75+endstop_toe_h),0,endstop_toe_h-carriage_h/2]) 
-        rotate([0,90,0]) 
-            cylinder(d=endstop_toe_w, h=endstop_toe_h);
-    translate([-5.5,0,endstop_toe_h-carriage_h/2]) 
-        sphere(d=endstop_toe_w);
-    translate([-(1.8+3.75),0,-carriage_h/2]) 
-        rotate([0,0,0]) cylinder(d=endstop_toe_w, h=endstop_toe_h);
-}
-
-module carriage_block() {
-    // carriage w/o any punches
-}
-
 module lm10uu_carriage() {
   intersection()
   {
     color("orange")
     translate([-15,0,-15])
       cube([50,83,100], center=true);  // Trim extremeties
-    color("Cyan")
+    // color("Cyan")
     union()
     {
         // Area across inside:
+        color("blue")
         translate([-22,-30,-carriage_h/2])
             cube([4,60,carriage_h]);
 
         // Belt connector column:
-       translate([0,0,-(5+bonus)])
-             belt_connector();
+        color("green")
+        translate([-22+15,0,-BC_z+carriage_h/2])
+            connector_block();
 
         // Fill behind bearing clip:
+        color("cyan")
         translate([-21,30-5,-carriage_h/2])
             cube([15,7,carriage_h]);
         mirror([0,1,0])
+        color("cyan")
         translate([-21,30-5,-carriage_h/2])
             cube([15,7,carriage_h]);
 
@@ -293,9 +400,9 @@ module lm10uu_carriage() {
                 translate([-23/2,-23/2,0])
                     cube([14,23,carriage_h]);
         
-        translate([-14,30,0])
+        translate([-14,d_RD10_2,joint_o])
             horn();
-        translate([-14,-30,0])
+        translate([-14,-d_RD10_2,joint_o])
             horn();        
     }
   }
@@ -306,138 +413,98 @@ module new_carriage() {
     {
         lm10uu_carriage();
         
-        color("red")
+        color("orange")
         translate([0,0,carriage_h])
             cube([5,5,5]);
+        
         // punch out the actuator slot
+        color("FireBrick")
         translate([-17.5,0,endstop_base_l])
             actuator_punch();
   
+//        color("FireBrick")
         union()
         {
             // Nut holders for magnetic balls
-            translate([-13,30,0])
+            translate([-13,d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=5,d=nut, $fn=6);
-            translate([-13,-30,0])
+            translate([-13,-d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=5,d=nut, $fn=6);
 
-            translate([-35,30,0])
+            translate([-35,d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=45,d=bolt_b);
-            translate([-35,-30,0])
+            translate([-35,-d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=45,d=bolt_b);
-            
             // Horn slots:
-            translate([-(30-1),30,0])
+            color("yellow")
+            translate([-(30-1),d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=10.5,d=horn_d);
-            translate([-(30-1),-30,0])
+            color("yellow")
+            translate([-(30-1),-d_RD10_2,joint_o])
                 rotate([0,90,0])
                     cylinder(h=10.5,d=horn_d);
 
             // Cutouts to prevent rod interference:
-            translate([-(35-1),30+3,-30])
+            translate([-(35-1),d_RD10_2+3,-30])
                 rotate([0,0,0])
                     cylinder(h=32,d2=30, d1=40);
-            translate([-(35-1),-(30+3),-30])
+            translate([-(35-1),-(d_RD10_2+3),-30])
                 rotate([0,0,0])
                     cylinder(h=32,d2=30, d1=40);
 
-            translate([-35,0,0-bonus])
+            // punch-out for belt catch bolt
+            bcb_off = (BC_z - carriage_h) / 2;
+            translate([-35,0,-bcb_off])
                 rotate([0,90,0])
                     cylinder(h=45,d=bolt_a);
-            translate([-30,0,0-bonus])
+            translate([-30,0,-bcb_off])
                 rotate([0,90,0])
                     cylinder(h=10,d=bolt_a+5);
 
             // punch out the bearing shape
             L_punch = bearing_L + 2* guard + 2* L_shaft;
-            translate([0, 30,-L_punch/2]) rotate([0,0,-60]) lm10UU();
-            translate([0,-30,-L_punch/2]) rotate([0,0,60]) lm10UU();
+            translate([0, d_RD10_2,-L_punch/2]) rotate([0,0,-60]) lm10UU();
+            translate([0,-d_RD10_2,-L_punch/2]) rotate([0,0,60]) lm10UU();
         }
     }
 }
 
-module horn()
-{
-    color("red") {
-    horn_d = 10;
-    rotate([0,0,90])
-    intersection()
-    {
-      translate([-100,0,0]) cube([200,200,15]);
-        difference()
-        {
-            translate([0,3,0]) rotate([40,0,0]) union()
-            {
-                translate([0,horn_d,-10]) cylinder(d=horn_d,h=35);
-                translate([-(horn_d/2),0,-10]) cube([horn_d,horn_d,35]);
-            }
-            rotate([90,0,0]) cylinder(d=horn_d+1,h=100, center=true);
-        }
-    }
-  }
-}
-
-// we use a triangle shape for the base so we can print w/o support
-module actuator_tab() {
-    color("green") {
-    xr=endstop_base_knob/2; xl=-xr;
-    xbr=endstop_tab_w/2; xbl=-xbr;
-    yb=endstop_tab_l/2;
-    z=endstop_base_l;
-    
-    polyhedron( points=[
-            [xl,0,0],[xr,0,0],
-            [xbr,yb,0],[xbl,yb,0],
-            [xl,0,z],[xr,0,z],
-            [xbr,yb,z],[xbl,yb,z]], 
-        faces=[
-            [0,1,2,3],  // bottom
-            [4,5,1,0],  // front
-            [7,6,5,4],  // top
-            [5,6,2,1],  // right
-            [6,7,3,2],  // back
-            [7,4,0,3]]  // left
-        );
-    translate([-endstop_tab_w/2,0,0]) 
-        cube([endstop_tab_w, endstop_tab_l,endstop_tab_h]);
-    }
-}
-
-// the shape to be punched out of the carrier
-module actuator_punch() {
-    linear_extrude(height=endstop_base_l)
-        offset(delta=endstop_tab_offset)
-            rotate([0,0,-90])
-                projection()
-                    actuator_tab();
-}
 
 module printable_set()
 {
-    translate([0,0,carriage_h/2])
-        rotate([180,0,0])
-            new_carriage();
-    translate([0,-endstop_base_l,0])
-        rotate([90,0,180])
-            actuator_tab();
-
-    // === debug ===
-*    color("green")
-    translate([0,10,10+carriage_h])
-        rotate([90,0,90])
-            belt_catch();
-*    translate([0,0,carriage_h/2])
-        rotate([0,0,0])
-            new_carriage();
-*    translate([-17,5,30])
-        rotate([0,0,-90])
-            actuator_tab();
- 
+    if (debug==0) {
+        if (print_sled) 
+            translate([0,0,carriage_h/2])
+                rotate([180,0,0])
+                    new_carriage();
+        if (print_actuator) {
+            translate([0,-endstop_base_l,0])
+                rotate([90,0,180])
+                    actuator_tab(len=endstop - 5.0);
+            translate([10,-endstop_base_l,0])
+                rotate([90,0,180])
+                    actuator_tab(len=endstop);
+            translate([20,-endstop_base_l,0])
+                rotate([90,0,180])
+                    actuator_tab(len=endstop + 5.0);
+        }
+        
+    } else {
+        // === debug ===
+//        connector_block();
+*        lm10uu_carriage();
+        *color("green")
+            translate([0,10,carriage_h])
+                rotate([90,0,90])
+                    belt_catch();
+        
+        horn();
+    }
 }
 
 printable_set();
