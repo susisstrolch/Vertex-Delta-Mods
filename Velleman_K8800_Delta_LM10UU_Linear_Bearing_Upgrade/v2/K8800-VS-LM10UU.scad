@@ -27,13 +27,11 @@ print_sled = 0;
 print_actuator = 0;
 
 // Bonus height?  0 to disable
-bonus = 5;
+// bonus = 5;
 
 // disable/enable debug
 debug = 0;
 
-// offset for horn and magnetic bolts
-joint_o = 0.55;
 // this dummy hides the following vars in Customizer
 module dont_show_in_customizer() {
 }
@@ -65,7 +63,6 @@ nozzle_d = 0.35;    // K8800 default nozzle
 horn_xy = 10;
 horn_z = 7;
 horn_d = 10;
-
 
 // extrusion control - read the source, Luke
 slop = 0;
@@ -105,6 +102,7 @@ tie_toe = 30;    // tie-wrap toe-in angle
 bearing_bb = enable_brim ? 3 * nozzle_d : 0;  // bottom brim heigth
 bearing_tb = bearing_bb;    // top brim heigth
 
+
 // bearing related dimensions
 bearing_L  = 29.0;  // length of bearing
 bearing_dr = 10.0;  // inner diameter (shaft)
@@ -120,6 +118,8 @@ bearing_h0 = (bearing_L - bearing_B) / 2;   // height of start of circlip groove
 bearing_h1 = bearing_h0 + bearing_W;        // height of end of circlip grooves
 
 L_shaft = 3.0;  // (save) length of punch through shaft for bearing top/bottom
+
+d_punch = 3.0;  // shortening offset for shaft in brim
 
 // VS (vertical slight
 // carriage_h = (1 + bearing_L) + bearing_bb + bearing_tb;
@@ -152,7 +152,6 @@ module belt_catch() {
 // actuator_tab
 // we use a triangle shape for the base so we can print w/o support
 module actuator_tab(len=endstop) {
-    color("green") {
     xr=endstop_base_knob/2; xl=-xr;
     xbr=endstop_tab_w/2; xbl=-xbr;
     yb=endstop_tab_l/2;
@@ -174,7 +173,6 @@ module actuator_tab(len=endstop) {
         );
     translate([-endstop_tab_w/2,0,0]) 
         cube([endstop_tab_w, endstop_tab_l, l]);
-    }
 }
 
 // the shape to be punched out of the carrier
@@ -206,7 +204,7 @@ module connector_block() {
         [0,0]
     ];
     
-    color("blue")
+//    color("blue")
         linear_extrude(height=BC_z)
             polygon(2D_shape);
 
@@ -216,7 +214,7 @@ module connector_block() {
     toe_z = 6.75;
     toe_r = toe_y/2;
 
-    color("green")
+//    color("green")
     translate([toe_x,-toe_r,toe_z-toe_r])
     rotate([-90,0,90])
     linear_extrude(height=toe_x)
@@ -253,12 +251,12 @@ module bearing_2D(offset=0) {
 module bearing_3D() {
     $fn=90;
     difference(){
-        color("green")
+//        color("green")
         translate([0,0,0])
             rotate_extrude($fn = 90)
                 bearing_2D(0);
         // cut out for rod
-        color("red")
+//        color("red")
             cylinder(d=bearing_dr, h=bearing_L+guard*2);
     }
 }
@@ -271,7 +269,7 @@ module bearing_punch() {
     D=bearing_D + 2* guard;
     zMax = bearing_L + 2* guard;
     
-    color("red")
+//    color("red")
     translate([0,0,0])
         rotate_extrude($fn = 90)
             offset(delta=guard)
@@ -288,9 +286,9 @@ module bearing_punchmask() {
 
     L_punch = bearing_L + 2*guard;    // bearing_punch heigth
     D_punch = bearing_D + 2*guard;    // bearing_punch diameter
-    D_shaft = enable_brim ? D_punch - 2.0  : D_punch;    // space for rod...
+    D_shaft = enable_brim ? D_punch - d_punch  : D_punch;    // space for rod...
     
-    color("FireBrick")
+//    color("FireBrick")
     union() {
         // punch through shaft
         translate([0,0,0])
@@ -305,12 +303,14 @@ module bearing_punchmask() {
 
 module horn()
 {
-    color("red") {
     horn_d = 10;
+//    color("red")
     rotate([0,0,90])
     intersection()
     {
-      translate([-100,0,0]) cube([200,200,15]);
+        translate([-10,0,0]) 
+            cube([15,20,carriage_h/2]);
+        translate([0,0,bearing_tb])
         difference()
         {
             translate([0,3,0]) rotate([40,0,0]) union()
@@ -321,11 +321,10 @@ module horn()
             rotate([90,0,0]) cylinder(d=horn_d+1,h=100, center=true);
         }
     }
-  }
 }
 
-
-module lm10UU()
+// punch mask for bearing and zip-ties
+module lm10UU_punchmask()
 {
     union()
     {
@@ -351,12 +350,11 @@ module lm10UU()
     }
 }
 
-
 module lm10uu_carriage() {
   intersection()
   {
-    color("orange")
-    translate([-15,0,-15])
+//   color("orange")
+    translate([-15,0,carriage_h/2])
       cube([50,83,100], center=true);  // Trim extremeties
     // color("Cyan")
     union()
@@ -390,19 +388,20 @@ module lm10uu_carriage() {
                 translate([0,2,0])
                     cube([9+1,30-5,carriage_h]);
         
-        translate([0,30,-carriage_h/2])
+      
+        translate([0,29,-carriage_h/2])
             rotate([0,0,-60])
                 translate([-23/2,-23/2,0])
                     cube([14,23,carriage_h]);
         mirror([0,1,0])
-        translate([0,30,-carriage_h/2])
+        translate([0,29,-carriage_h/2])
             rotate([0,0,-60])
                 translate([-23/2,-23/2,0])
                     cube([14,23,carriage_h]);
         
-        translate([-14,d_RD10_2,joint_o])
+        translate([-14,d_RD10_2,0])
             horn();
-        translate([-14,-d_RD10_2,joint_o])
+        translate([-14,-d_RD10_2,0])
             horn();        
     }
   }
@@ -413,51 +412,49 @@ module new_carriage() {
     {
         lm10uu_carriage();
         
-        color("orange")
-        translate([0,0,carriage_h])
-            cube([5,5,5]);
-        
         // punch out the actuator slot
-        color("FireBrick")
-        translate([-17.5,0,endstop_base_l])
-            actuator_punch();
-  
 //        color("FireBrick")
+        translate([-17.5,0,endstop_base_l+bearing_tb])
+            actuator_punch();
+
         union()
         {
-            // Nut holders for magnetic balls
-            translate([-13,d_RD10_2,joint_o])
+            // Nut holders for magnetic cub
+            translate([-13,d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=5,d=nut, $fn=6);
-            translate([-13,-d_RD10_2,joint_o])
+            translate([-13,-d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=5,d=nut, $fn=6);
 
-            translate([-35,d_RD10_2,joint_o])
+//            color("cyan")
+            translate([-35,d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=45,d=bolt_b);
-            translate([-35,-d_RD10_2,joint_o])
+//            color("cyan")
+            translate([-35,-d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=45,d=bolt_b);
-            // Horn slots:
-            color("yellow")
-            translate([-(30-1),d_RD10_2,joint_o])
+            
+            // Horn slots - the 11mm is an approximation 
+//           color("yellow")
+            translate([-(30-1),d_RD10_2,bearing_tb])
                 rotate([0,90,0])
-                    cylinder(h=10.5,d=horn_d);
-            color("yellow")
-            translate([-(30-1),-d_RD10_2,joint_o])
+                    cylinder(h=11,d=horn_d);
+//           color("yellow")
+            translate([-(30-1),-d_RD10_2,bearing_tb])
                 rotate([0,90,0])
-                    cylinder(h=10.5,d=horn_d);
+                    cylinder(h=11,d=horn_d);
 
             // Cutouts to prevent rod interference:
-            translate([-(35-1),d_RD10_2+3,-30])
+            translate([-(35-1),d_RD10_2+3,-30+bearing_tb])
                 rotate([0,0,0])
                     cylinder(h=32,d2=30, d1=40);
-            translate([-(35-1),-(d_RD10_2+3),-30])
+            translate([-(35-1),-(d_RD10_2+3),-30+bearing_tb])
                 rotate([0,0,0])
                     cylinder(h=32,d2=30, d1=40);
 
-            // punch-out for belt catch bolt
+            // hole for belt catch screw
             bcb_off = (BC_z - carriage_h) / 2;
             translate([-35,0,-bcb_off])
                 rotate([0,90,0])
@@ -468,12 +465,15 @@ module new_carriage() {
 
             // punch out the bearing shape
             L_punch = bearing_L + 2* guard + 2* L_shaft;
-            translate([0, d_RD10_2,-L_punch/2]) rotate([0,0,-60]) lm10UU();
-            translate([0,-d_RD10_2,-L_punch/2]) rotate([0,0,60]) lm10UU();
+            translate([0, d_RD10_2,-L_punch/2]) 
+                rotate([0,0,-60]) 
+                    lm10UU_punchmask();
+            translate([0,-d_RD10_2,-L_punch/2]) 
+                rotate([0,0,60]) 
+                    lm10UU_punchmask();
         }
     }
 }
-
 
 module printable_set()
 {
@@ -497,13 +497,13 @@ module printable_set()
     } else {
         // === debug ===
 //        connector_block();
-*        lm10uu_carriage();
-        *color("green")
+        lm10uu_carriage();
+*        color("green")
             translate([0,10,carriage_h])
                 rotate([90,0,90])
                     belt_catch();
         
-        horn();
+*        horn();        
     }
 }
 
