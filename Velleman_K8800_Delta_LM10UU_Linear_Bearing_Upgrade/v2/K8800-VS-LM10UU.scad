@@ -8,8 +8,8 @@
 // to gain up to 5mm of bonus Z-Axis travel.  set (bonus = 0) to preserve the
 // stock height of the original part.
 
-// fence for inner punches (>= layer heigth)
-guard = 0.2;        
+// extrusion guard (~nozzle/2)
+guard = 0.175;        
 
 // EMBEDED=0, LM10UU=1, RJ4JP=2, RJUM1=3
 bearing_type = 3;
@@ -25,9 +25,6 @@ print_sled = 0;
 
 // set to 1 to print the actuator
 print_actuator = 0;
-
-// Bonus height?  0 to disable
-// bonus = 5;
 
 // disable/enable debug
 debug = 0;
@@ -55,41 +52,32 @@ RD10_d  = 10;       // rod diameter
 // the belt catch
 BC_z = 36.0;    // height of belt catch
 BC_x = 16.0;    // thicknes of belt catch
-BC_y = 2* 11.5; // assymetrical hole!
+BC_y = 2* 11.5; // non-centric hole!
 
 nozzle_d = 0.35;    // K8800 default nozzle
-// ------------------------------------------
 
+// ------------------------------------------
 horn_xy = 10;
 horn_z = 7;
 horn_d = 10;
 
-// extrusion control - read the source, Luke
-slop = 0;
-slug_dh = 10;
-slug_slop = 0.5;
-
 // endstop definitions
 // the endstop consists of two parts:
 // - endstop_base - the overall height of the part inserted into the carrier
-//                  default: 10mm, bonus: 15.0mm
-//                  the base is made of a cylinder (triangle) and the tab cube
+//                  default: 10mm
+//                  the base (toe) is made of a triangle and the tab cube
 // - endstop_tab  - the tab above the carrier
-endstop_base_knob = 5;      // diameter of endstop knob
-endstop_base_l    = 10;     // overall length of endstop base inside carriage
+endstop_toe_w = 5;  // width of endstop knob
+endstop_toe_h = 7.5; // overall length of endstop base inside carriage
 
 endstop_tab_l = endstop;    // height above carrier
 endstop_tab_w = 2.5;        // width of the tab (must fit into the IR sensor)   
-endstop_tab_h = endstop_base_l + endstop;   // overall height of endstop tab
-endstop_tab_offset = 0.5;         // offset for punching the endstop slot
-
-
-endstop_toe_w = 3.3;    // 
-endstop_toe_h = 5;
+endstop_tab_h = endstop_toe_h + endstop;   // overall height of endstop tab
+endstop_tab_guard = guard;                 // offset for punching the endstop slot
 
 // nuts and bolds
-bolt_a = 5.5;
-bolt_b = 5.3;
+bolt_a = 5.5;       // belt fetch holder
+bolt_b = 5.3;       // magnetic cub
 nut = 10;//9.64;
 
 // zip-tie 
@@ -98,12 +86,7 @@ tie_w = 1.5;     // tie-wrap slot width
 tie_h = 3;       // tie-wrap slot height
 tie_toe = 30;    // tie-wrap toe-in angle
 
-// option: top and bottom brim to keep bearing in carriage
-bearing_bb = enable_brim ? 3 * nozzle_d : 0;  // bottom brim heigth
-bearing_tb = bearing_bb;    // top brim heigth
-
-
-// bearing related dimensions
+// the bearing...
 bearing_L  = 29.0;  // length of bearing
 bearing_dr = 10.0;  // inner diameter (shaft)
 bearing_D  = 19.0;  // outer diameter
@@ -113,18 +96,20 @@ bearing_B = (bearing_type==RJUM1) ? 21.6 : 22.0;   // spacing of the circlip gro
 bearing_W = (bearing_type==RJUM1) ?  1.3 : 1.3;    // circlip groove width
 bearing_D1= (bearing_type==RJUM1) ? 17.5 : 18.0;   // slot (groove) diameter
 
-// computed dimensions 
-bearing_h0 = (bearing_L - bearing_B) / 2;   // height of start of circlip groove
-bearing_h1 = bearing_h0 + bearing_W;        // height of end of circlip grooves
+// circlip grooves - computed dimensions 
+bearing_h0 = (bearing_L - bearing_B) / 2;
+bearing_h1 = bearing_h0 + bearing_W;
 
-L_shaft = 3.0;  // (save) length of punch through shaft for bearing top/bottom
+// option: top and bottom brim to keep bearing in carriage
+bearing_bb = enable_brim ? 3 * nozzle_d : 0;  // bottom brim heigth
+bearing_tb = bearing_bb;    // top brim heigth
+
+L_shaft = 3.0;  // length of punch through shaft for bearing top/bottom
 
 d_punch = 3.0;  // shortening offset for shaft in brim
 
 // VS (vertical slight
-// carriage_h = (1 + bearing_L) + bearing_bb + bearing_tb;
 carriage_h = (bearing_L) + bearing_bb + bearing_tb;
-
 echo("carriage heigth:", carriage_h);
 
 // ----------------------------------------
@@ -151,13 +136,14 @@ module belt_catch() {
 // ----------------------------------------
 // actuator_tab
 // we use a triangle shape for the base so we can print w/o support
-module actuator_tab(len=endstop) {
-    xr=endstop_base_knob/2; xl=-xr;
-    xbr=endstop_tab_w/2; xbl=-xbr;
-    yb=endstop_tab_l/2;
-    z=endstop_base_l;
+// add slop parameter in case the actuator slot is to wide
+module actuator_tab(len=endstop, slop=0) {
+    xr=slop + endstop_toe_w/2; xl=-xr;
+    xbr=slop + endstop_tab_w/2; xbl=-xbr;
+    yb=slop + endstop_tab_l/2;
+    z=endstop_toe_h;
     
-    l = endstop_base_l + len;  
+    l = endstop_toe_h + len;  
     polyhedron( points=[
             [xl,0,0],[xr,0,0],
             [xbr,yb,0],[xbl,yb,0],
@@ -171,25 +157,56 @@ module actuator_tab(len=endstop) {
             [6,7,3,2],  // back
             [7,4,0,3]]  // left
         );
-    translate([-endstop_tab_w/2,0,0]) 
-        cube([endstop_tab_w, endstop_tab_l, l]);
+    translate([xbl,0,0]) 
+        cube([xbr*2, endstop_tab_l, l]);
 }
 
 // the shape to be punched out of the carrier
-module actuator_punch() {
-    linear_extrude(height=endstop_base_l)
-        offset(delta=endstop_tab_offset)
+module actuator_punch(es_guard=endstop_tab_guard) {
+    linear_extrude(height=endstop_toe_h)
+        offset(delta=es_guard)
             rotate([0,0,-90])
                 projection()
                     actuator_tab();
 }
 
+// magnetic cub - punch shape
+module magcub() {
+    MCd1=5; MCh1=8.25;  // shaft
+    MCd2=10; MCh2=4.3;  // head -d2 real: 8.5
+    MCd3=10; MCh3=4.0;  // nut
+    
+    rotate([0,-90,0])
+        union() {
+            color("red")
+            translate([0,0,-MCh1/2])
+                cylinder(center=true, d=MCd1, h=MCh1, $fn=64);
+            color("red")
+            translate([0,0,MCh2/2])
+                cylinder(center=true, d=MCd2, h=MCh2, $fn=64);
+            color("orange")
+            translate([0,0,MCh2+MCh2/2]) // punch through for head
+                cylinder(center=true, d=MCd2, h=MCh2, $fn=64);
+            
+            color("red")
+            translate([0,0,-MCh1+MCh3/2])
+                difference() {
+                    cylinder(center=true, d=MCd3, h=MCh3, $fn=6);
+ *                   cylinder(center=true, d=MCd1, h=MCh3, $fn=64);
+                }
+            color("orange")
+            translate([0,0,-MCh1-MCh3/2])  // punch through for nut
+                difference() {
+                    cylinder(center=true, d=MCd3, h=MCh3, $fn=6);
+*                    cylinder(center=true, d=MCd1, h=MCh3, $fn=64);
+            }
+        }
+    }
 
 // ----------------------------------------
 // connector block - holding the belt catch
 //
 module connector_block() {
-    // mount hole: x=, y=, D=
     // bounding box: x=22, y=36
     bby=22; bby2=bby/2; // bounding box x/2
     bbx=15; bbx2=bbx/2; // bounding box y/2
@@ -204,25 +221,8 @@ module connector_block() {
         [0,0]
     ];
     
-//    color("blue")
-        linear_extrude(height=BC_z)
-            polygon(2D_shape);
-
-    // Belt retainer alignment tab
-    toe_x = 3.2;
-    toe_y = 2.7;
-    toe_z = 6.75;
-    toe_r = toe_y/2;
-
-//    color("green")
-    translate([toe_x,-toe_r,toe_z-toe_r])
-    rotate([-90,0,90])
-    linear_extrude(height=toe_x)
-        union() {
-            square(size=[toe_y,toe_z-toe_r]);
-            translate([toe_y/2,0,0])
-                circle(d=toe_y);
-        };
+    linear_extrude(height=BC_z)
+        polygon(2D_shape);
 }
 
 // punch mask for bearing
@@ -248,16 +248,16 @@ module bearing_2D(offset=0) {
 }
 
 // bearing model - for completeness/debugging  only - not explicitly used
-module bearing_3D() {
+module bearing_3D(offset=0) {
     $fn=90;
     difference(){
-//        color("green")
+        color("green")
         translate([0,0,0])
             rotate_extrude($fn = 90)
-                bearing_2D(0);
+                bearing_2D(offset);
         // cut out for rod
-//        color("red")
-            cylinder(d=bearing_dr, h=bearing_L+guard*2);
+        color("red")
+        cylinder(d=bearing_dr, h=bearing_L+guard*2);
     }
 }
 
@@ -269,7 +269,6 @@ module bearing_punch() {
     D=bearing_D + 2* guard;
     zMax = bearing_L + 2* guard;
     
-//    color("red")
     translate([0,0,0])
         rotate_extrude($fn = 90)
             offset(delta=guard)
@@ -288,7 +287,6 @@ module bearing_punchmask() {
     D_punch = bearing_D + 2*guard;    // bearing_punch diameter
     D_shaft = enable_brim ? D_punch - d_punch  : D_punch;    // space for rod...
     
-//    color("FireBrick")
     union() {
         // punch through shaft
         translate([0,0,0])
@@ -353,10 +351,8 @@ module lm10UU_punchmask()
 module lm10uu_carriage() {
   intersection()
   {
-//   color("orange")
     translate([-15,0,carriage_h/2])
       cube([50,83,100], center=true);  // Trim extremeties
-    // color("Cyan")
     union()
     {
         // Area across inside:
@@ -365,16 +361,13 @@ module lm10uu_carriage() {
             cube([4,60,carriage_h]);
 
         // Belt connector column:
-        color("green")
         translate([-22+15,0,-BC_z+carriage_h/2])
             connector_block();
 
         // Fill behind bearing clip:
-        color("cyan")
         translate([-21,30-5,-carriage_h/2])
             cube([15,7,carriage_h]);
         mirror([0,1,0])
-        color("cyan")
         translate([-21,30-5,-carriage_h/2])
             cube([15,7,carriage_h]);
 
@@ -414,35 +407,23 @@ module new_carriage() {
         
         // punch out the actuator slot
 //        color("FireBrick")
-        translate([-17.5,0,endstop_base_l+bearing_tb])
+        translate([-17.0,0,carriage_h/2-(endstop_toe_h)])
             actuator_punch();
 
         union()
         {
             // Nut holders for magnetic cub
-            translate([-13,d_RD10_2,bearing_tb])
-                rotate([0,90,0])
-                    cylinder(h=5,d=nut, $fn=6);
-            translate([-13,-d_RD10_2,bearing_tb])
-                rotate([0,90,0])
-                    cylinder(h=5,d=nut, $fn=6);
-
-//            color("cyan")
-            translate([-35,d_RD10_2,bearing_tb])
-                rotate([0,90,0])
-                    cylinder(h=45,d=bolt_b);
-//            color("cyan")
-            translate([-35,-d_RD10_2,bearing_tb])
-                rotate([0,90,0])
-                    cylinder(h=45,d=bolt_b);
+            translate([-16.5,d_RD10_2,bearing_tb])
+            magcub();
+            
+            translate([-16.5,-d_RD10_2,bearing_tb])
+            magcub();
             
             // Horn slots - the 11mm is an approximation 
-//           color("yellow")
-            translate([-(30-1),d_RD10_2,bearing_tb])
+*            translate([-(30-1),d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=11,d=horn_d);
-//           color("yellow")
-            translate([-(30-1),-d_RD10_2,bearing_tb])
+*            translate([-(30-1),-d_RD10_2,bearing_tb])
                 rotate([0,90,0])
                     cylinder(h=11,d=horn_d);
 
@@ -473,38 +454,53 @@ module new_carriage() {
                     lm10UU_punchmask();
         }
     }
+    
+    
 }
 
 module printable_set()
 {
+    es_slop = 0.0;      // optimize: slop for endstop
     if (debug==0) {
         if (print_sled) 
             translate([0,0,carriage_h/2])
                 rotate([180,0,0])
                     new_carriage();
         if (print_actuator) {
-            translate([0,-endstop_base_l,0])
+            translate([10,-endstop_toe_h,0])
                 rotate([90,0,180])
-                    actuator_tab(len=endstop - 5.0);
-            translate([10,-endstop_base_l,0])
-                rotate([90,0,180])
-                    actuator_tab(len=endstop);
-            translate([20,-endstop_base_l,0])
-                rotate([90,0,180])
-                    actuator_tab(len=endstop + 5.0);
+                    actuator_tab();
         }
         
     } else {
-        // === debug ===
-//        connector_block();
-        lm10uu_carriage();
-*        color("green")
-            translate([0,10,carriage_h])
-                rotate([90,0,90])
-                    belt_catch();
+    // ===== debug =====
+*        magcub();
         
-*        horn();        
+        intersection() {
+            new_carriage();
+            translate([-35,-45,0])
+                cube([50,90,10]);
+        }
+        // top part of carriage
+*        intersection() {
+            translate([0,0,carriage_h/2])
+                rotate([180,0,0])
+                    new_carriage();
+            translate([-35,-45,0])
+                cube([50,90,10]);
+        }
+        
+        // an actuator tab
+*        translate([15,-7.5,0])
+            rotate([90,0,180])
+                actuator_tab();
+        
+*        translate([30,-15,0])
+            bearing_2D(offset=guard);
+        
+*        translate([30,-30,0])
+            bearing_3D(offset=guard);
     }
 }
-
 printable_set();
+ 
