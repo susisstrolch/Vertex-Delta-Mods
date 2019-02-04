@@ -1,0 +1,182 @@
+/* ==================
+ * Vertex Delta K8800 - Endstop Actuator
+ *
+ * K8800 endstops can't be set easily to the same level.
+ * So the idea is, to have a rough and a fine setting of the actuator.
+ * Rough settings is done by the _ES_ActuatorHeight, fine adjustment 
+ * by a M3 crew buried into the toe of the actuator.
+ *
+ * This include file will produce the following models:
+ * K8800_ES_Mask - a punch mask for the actuator toe
+ *
+ * K8800_ES_Endstop - endstop with toe
+ *                    
+ * K8800_2D_ToeShape -  shape of the endstop toe
+ *
+ * We expect the following (global) variables from parent file:
+ *  nozzle_size - the print nozzle size
+ *  cld       - the cld for extrusion overflow
+ *  
+ */
+
+/* shape of the toe (X,Y) is:
+ *     >   <  ES_endstop_x
+ *    >     < ES_toe_x
+ *         __ ES_endstop_y
+ *      | | _ ES_toe_y
+ *     /   \_ ES_toe_y/2
+ *     |   |
+ *     +---+ _0
+ *
+*/
+_ES_TOE_X = 6.0;
+_ES_TOE_Y = 6.0;
+_ES_TOE_Z = 7.5;
+
+_ES_ENDSTOP_X = 3.5;
+_ES_ENDSTOP_Y = _ES_TOE_Y + 7.75;   // from K8800_VS...
+_ES_ENDSTOP_Z = 7.5;
+
+
+/*  inherit from parent...
+_D_NOZZLE           = 0.35;
+_D_WALL             = _D_NOZZLE * 3;    // perimeter
+_D_CLD              = _D_NOZZLE / 4;    // clearing distance
+_D_HCLD             = _D_NOZZLE / 4;    // horizontal clearing distance (cld)
+_D_VCLD             = _D_NOZZLE / 4;    // layer height
+*/
+
+// include <nutsnbolts/cyl_head_bolt.scad>;
+// include <nutsnbolts/materials.scad>;
+
+// overall depth of endstop actuator
+function get_ES_depth()=_D_WALL+_ES_ENDSTOP_Y/2 + _ES_ENDSTOP_Y;
+function get_ES__ES_TOE_Z() = _ES_TOE_Z;
+function get_ES__ES_TOE_Y() = _ES_TOE_Y;
+function get_ES__ES_TOE_X() = _ES_TOE_X;
+
+module K8800_2D_ToeShape(
+    _ES_endstop_x = _ES_ENDSTOP_X,
+    _ES_toe_x = _ES_TOE_X,          // should fit for M3 screw / bold
+    _ES_toe_y = _ES_TOE_Y,
+    _ES_endstop_y = _ES_ENDSTOP_Y,  // should fit for M3 screw / bold
+    cld=_D_HCLD) {
+
+    endstop_x2 = _ES_endstop_x/2;
+    toe_x2     = _ES_toe_x/2;
+    toe_y2     = _ES_toe_y/2;
+
+    shape=[
+        [-toe_x2,0], [toe_x2,0],
+        [toe_x2, toe_y2], [endstop_x2,_ES_toe_y],
+        [endstop_x2, _ES_endstop_y], [-endstop_x2, _ES_endstop_y],
+        [-endstop_x2, _ES_toe_y], [-toe_x2,toe_y2],
+        [-toe_x2, 0]
+   ];
+   polygon(shape);
+}
+
+module K8800_ES_Mask(
+    _ES_endstop_x = _ES_ENDSTOP_X,
+    _ES_toe_x = _ES_TOE_X,          // should fit for M3 screw / bold
+    _ES_toe_y = _ES_TOE_Y,
+    _ES_toe_z = _ES_TOE_Z,
+    _ES_endstop_y = _ES_ENDSTOP_Y,  // should fit for M3 screw / bold
+    _ES_endstop_z = _ES_ENDSTOP_Z,
+    _ES_hcld = _D_HCLD,
+    _ES_vcld = _D_VCLD
+) {
+    echo(str("K8800_ES_Mask: hcld: ",_ES_hcld));
+    translate([0,0,-_ES_toe_z])
+    union() {
+        color("blue")
+        linear_extrude(height=_ES_toe_z)
+            offset(delta=_ES_hcld)
+                K8800_2D_ToeShape();
+        
+        color("orange")
+        translate([-_ES_endstop_x/2,_ES_toe_y,_ES_toe_z])
+            cube(size=[_ES_endstop_x,_D_WALL+_ES_endstop_y/2,_ES_endstop_z]);
+    }
+}
+
+module K8800_ES_Endstop(
+    _ES_endstop_x = _ES_ENDSTOP_X,
+    _ES_toe_x = _ES_TOE_X,        // should fit for M3 screw / bold
+    _ES_toe_y = _ES_TOE_Y,
+    _ES_toe_z = _ES_TOE_Z,
+    _ES_endstop_y = _ES_ENDSTOP_Y,    // should fit for M3 screw / bold
+    _ES_endstop_z = _ES_ENDSTOP_Z,
+    _ES_vcld = _D_VCLD,
+    _ES_hcld = _D_HCLD,
+    _ES_marker = _T_MARKER,		// marker text on endstop side
+    _ES_thread = "no"
+) {
+    echo(str("K8800_ES_Endstop: hcld: ",_ES_hcld, ", thread: ",_ES_thread));
+    color("red")
+    difference() {
+        K8800_ES_Mask(
+            _ES_endstop_x = _ES_endstop_x,
+            _ES_endstop_y = _ES_endstop_y,
+            _ES_toe_x = _ES_toe_x,          // should fit for M3 screw + _D_WALL
+            _ES_toe_y = _ES_toe_y,          // dito...
+            _ES_toe_z = _ES_toe_z,          
+            _ES_endstop_z = _ES_ENDSTOP_Z,
+            _ES_hcld = _ES_hcld,
+            _ES_vcld = _ES_vcld
+        );
+        
+       translate([0,_ES_toe_y/2,_ES_vcld])
+             hole_threaded(name="M3", thread=_ES_thread, l=0.1+(2*_ES_hcld)+_ES_toe_z, $fn=64);
+
+	if (_T_MARKER != "none") {
+	  color("blue")
+	    translate([_ES_endstop_x/2-0.7,_ES_toe_y,-_ES_toe_z/2])
+	      rotate([90,0,90])
+	        linear_extrude(height=2)
+	    	text(_ES_marker,font="Courier 9 Pitch:style=Regular");
+	}
+
+  }
+	*if (_T_MARKER != "none") {
+		color("blue")
+		translate([_ES_endstop_x/2,_ES_toe_y,-_ES_toe_z/2])
+		rotate([90,0,90])
+	        linear_extrude(height=0.7)
+	    text(_ES_marker,font="Courier 9 Pitch:style=Regular");
+	}
+
+}
+
+// debug: a block with endstop punches in different sizes
+//        to check the required cld size for your printer
+module K8800_ES_Block(
+    cld = _D_HCLD
+)
+{
+}
+
+/* ----------------------
+ * debug relicts...
+ * ---------------------- 
+K8800_2D_ToeShape();
+ color("green") {
+    echo("K8800_ES_Mask();");
+    translate([10,0,0])
+    K8800_ES_Mask();
+}
+
+K8800_ES_Endstop(_ES_cld=0);        
+//translate([5,0,_ES_TOE_Z-0.10])
+//     hole_threaded(name="M3", thread="modeled",l=_ES_TOE_Z+0.2,$fn=60);
+ color("orange")
+    translate([-_ES_ENDSTOP_X/2,_ES_TOE_Y,_ES_TOE_Z])
+        cube(size=[_ES_ENDSTOP_X,_D_WALL+_ES_ENDSTOP_Y/2,_ES_ENDSTOP_Z]);
+
+ color("red")
+    difference() {
+        K8800_ES_Mask();       
+        K8800_ES_Endstop(_ES_cld=0.0);  
+ }
+ * ---------------------- */
+ 

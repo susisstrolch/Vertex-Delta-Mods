@@ -1,0 +1,14 @@
+{
+    "fileFormatVersion": "1",
+    "parameterSets":
+    {
+        "Inline":
+        {
+            "bearing_type": "2",
+            "bonus": "0",
+            "enable_brim": "1",
+            "endstop": "10",
+            "guard": "0.2"
+        }
+    }
+}
