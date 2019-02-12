@@ -36,7 +36,11 @@ _D_VCLD             = _D_NOZZLE / _F_VCLD;
  // ES hole: non-threaded: no, threaded: modeled
 _ES_HOLE_THREAD     = "no";
 // clearing distance for non-threaded ES hole 
-_ES_HOLE_CLTD       = _D_NOZZLE_1;  // 1/4
+_ES_HOLE_CLTD       = _D_NOZZLE_1;  // 1/4 nozzle
+
+// clearing distance for M5 nut catch
+_ES_HOLE_CLNC       = _D_NOZZLE_2;  // 1/2 nozzle
+
 // bearing type
 _VS_LINEAR_BEARING  = "RJ4JP-01-10";
 
@@ -89,8 +93,8 @@ module bearingBlock2D(){
         hull(){
             translate([-_VS_DIST_ROD_ROD2,-1,0])
                 circle(d=23);
-            translate([-(_VS_DIST_ROD_ROD2-1),-11,0])
-                circle(d=15);
+            translate([-(_VS_DIST_ROD_ROD2+2),-14,0])
+                circle(d=10);
             translate([-9.5,-18,0])
                 circle(d=10);
         }   
@@ -102,35 +106,63 @@ module bearingBlock2D(){
  * a single block, carved out
   ------------------------------ */
 module VSBlock(h=31) {
-    MC_y=21;
-    nutD=5.0;
+    _MC_type="M5";      // MC clip is M5...
+    _L_MC_bold=8.5;     // length of MC clip shaft
+    
+    _Y_MC_bold=21;      // Y-offset for MC bold
+
+//	_df   = _get_fam(name=_MC_type);
+//	_H_NH = _df[_NB_F_NUT_HEIGHT];
+    _H_NH = 4.7;
+    
+/* the nuthole catch min. Y distance for punch:
+           _get_outer_dia(_VS_LINEAR_BEARING)/2 +
+           _get_nut_height("M5") + inset
+    */
+    _MC_NC_inset= 1.5; // shift towards rod to punch the boarder
+    _MC_NC_dist = _get_outer_dia(_VS_LINEAR_BEARING)/2 
+                + _H_NH
+                -_MC_NC_inset;
+
+/* the magnetic clib
+   bold length is 8.5mm, so the critical Y distance equals
+            _get_outer_dia(_VS_LINEAR_BEARING)/2 + 8.5mm
+*/            
+    _MC_dist = _get_outer_dia(_VS_LINEAR_BEARING)/2 + _L_MC_bold;
+    
+    echo(str("_H_NH=",_H_NH, "\n_MC_NC_dist=", _MC_NC_dist, "\n_MC_dist=", _MC_dist));
     
     color("orange")
     difference() {
         linear_extrude(height=h, convexity = 10)
             bearingBlock2D();
         union() {
-            // the magnetic clib
             color("red")
-            translate([-30,-20.5,MC_y])
+            translate([-_VS_DIST_ROD_ROD2,-22.5,_Y_MC_bold])
                 rotate([90,0,0])
-                    hole_through(name="M5",l=8.5,h=4.5);
+                    hole_through(name="M5",l=_L_MC_bold,h=_H_NH);
 
-            // the corresponding nuthole
             color("blue")
-            translate([-30,-(9.5+4),MC_y])
+            translate([-_VS_DIST_ROD_ROD2,-(_MC_NC_dist),_Y_MC_bold])
                 rotate([90,0,0])
-                    nutcatch_parallel(name="M5",clk=_ES_HOLE_CLTD);
+                    nutcatch_parallel(name="M5",l=_H_NH + _MC_NC_inset, clk=_ES_HOLE_CLNC);
             
             // punch out the bearing
             color("lightgrey")
-            translate([-30,0,h/2])
+            translate([-_VS_DIST_ROD_ROD2,0,h/2])
                linear_bearing(
                     type=_VS_LINEAR_BEARING,
-                    cld  =  0.175, sl = 3.0, sb = 1.5
+                    cld  =  _D_NOZZLE_1, sl = 3.0, sb = 1.5
                 );
         }
     }
+    
+    // put in MC and nut...
+*            color("blue")
+            translate([-_VS_DIST_ROD_ROD2,-(_MC_NC_dist),_Y_MC_bold])
+                rotate([90,0,0])
+                    nutcatch_parallel(name=_type,clk=_ES_HOLE_CLNC);
+    
 }
 
 /* ------------------------------ 
@@ -146,7 +178,7 @@ module BCBlock(h=_VS_BELTCATCH_HEIGHT,
             cube([bcw,bcd,h],center=true);
 
         // punch out the M5x20 allen screw
-        translate([-0,-23,0])
+        translate([-0,-23])
             rotate([90,-0,0])
                 hole_through(name="M5",l=20,h=4.5, cld=_ES_HOLE_CLTD);
         
@@ -185,7 +217,7 @@ module BCBlock(h=_VS_BELTCATCH_HEIGHT,
 /* ==============================
  * the vertical slider block
  * ============================== */
-module vsBlock(bch=36,vsh=31){
+module vsBlock(bch=_VS_BELTCATCH_HEIGHT,vsh=31){
     BCBlock(bch);
 
     translate([0,0,-13]) {
@@ -202,8 +234,8 @@ module K8800_VS() {
     translate([0,0,_VS_BELTCATCH_HEIGHT/2])
         rotate([180,0,0])
             difference() {
-                vsBlock(bch=36,vsh=31);
-                pylon(delta=0.35*7);
+                vsBlock(bch=_VS_BELTCATCH_HEIGHT,vsh=31);
+                pylon(delta=0.35*5);
             }
 }
 
