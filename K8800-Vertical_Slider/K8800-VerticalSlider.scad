@@ -1,3 +1,4 @@
+// iteration #6
 include <Vertex-Delta-K8800-CAD.scad>;
 include <nutsnbolts/cyl_head_bolt.scad>;
 include <linear_bearing.scad>;
@@ -102,6 +103,33 @@ module bearingBlock2D(){
     }
 }
 
+/* ------------------------------ 
+ * iteration 6 - looks like we really need a zip-tie
+ * or wire to fasten the bearing - otherwise we get
+ * unwanted movement during acceleration on X-plane
+ * ------------------------------ */
+module ziptie_cutout() {
+    // cut out on the backside of VSBlock
+    // zip-tie diameter: 1.5x3 (wxh)
+    tie_w = 1.5;    // tie-wrap slot width
+    tie_h = 3;      // tie-wrap slot height
+    tie_a = 60;     // angle in degrees
+    
+    // we set the tie slot approx. 1mm away from bearing outside
+    tie_offset = 2.0;   // fine adjustment later...
+    
+    color("purple")
+    // the zip-tie slot, 360°
+    linear_extrude(height=tie_h)
+    // the 2D ring for the zip-tie
+        difference() {
+            circle(d=_get_outer_dia(_VS_LINEAR_BEARING) + tie_offset + tie_w);
+            circle(d=_get_outer_dia(_VS_LINEAR_BEARING) + tie_offset);
+        }
+    
+    
+};
+
 /* ------------------------------
  * a single block, carved out
   ------------------------------ */
@@ -124,10 +152,11 @@ module VSBlock(h=31) {
                 + _H_NH
                 -_MC_NC_inset;
 
-/* the magnetic clib
+/* -----------------
+   the magnetic clib
    bold length is 8.5mm, so the critical Y distance equals
-            _get_outer_dia(_VS_LINEAR_BEARING)/2 + 8.5mm
-*/            
+     _get_outer_dia(_VS_LINEAR_BEARING)/2 + 8.5mm
+   ----------------- */            
     _MC_dist = _get_outer_dia(_VS_LINEAR_BEARING)/2 + _L_MC_bold;
     
     echo(str("_H_NH=",_H_NH, "\n_MC_NC_dist=", _MC_NC_dist, "\n_MC_dist=", _MC_dist));
@@ -155,6 +184,11 @@ module VSBlock(h=31) {
                     cld  =  _D_NOZZLE_1, sl = 3.0, sb = 1.5
                 );
         }
+         // upper and lower zip-tie slot...
+        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)])
+            ziptie_cutout();
+        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)+_get_flange_B(_VS_LINEAR_BEARING)-_get_ring_w(_VS_LINEAR_BEARING)])
+            ziptie_cutout();
     }
     
     // put in MC and nut...
@@ -307,7 +341,7 @@ if (_PRINT_ES_TEST=="true") {
 }
 
 
-if (_PRINT_BCBLOCK=="false" &&
+ if (_PRINT_BCBLOCK=="false" &&
     _PRINT_BEARINGBLOCK=="false" &&
     _PRINT_ES_ACTUATOR=="false" &&
     _PRINT_ES_TEST=="false") {
@@ -317,3 +351,10 @@ if (_PRINT_BCBLOCK=="false" &&
         K8800_VS();
 }
  
+*    VSBlock();
+*    color("blue") {
+        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)])
+            ziptie_cutout();
+        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)+_get_flange_B(_VS_LINEAR_BEARING)-_get_ring_w(_VS_LINEAR_BEARING)])
+            ziptie_cutout();
+    }
