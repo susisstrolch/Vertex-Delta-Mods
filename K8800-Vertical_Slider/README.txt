@@ -43,7 +43,7 @@ I used the following print parameters:
     no alternate skin rotation
     no adaptive layers
 
-You'll need 3 bolts M3x12 (M3x15) for endstop adjustment.
+You'll need 3 bolds M3x12 (M3x15) for endstop adjustment.
 No need to cut the threads
 The endstop actuator should sit pretty tight in the belt catch block.
 
