@@ -27,5 +27,23 @@ The OpenSCAD files allows configuration of
 - .slt for complete vertical slider incl. one endstop
 
 
+Always use a zip-tie, otherwise the print head will get very spongy!
 
+I used the following print parameters:
+    layer height:       0,175 (= 1/2 nozzle dia)
+    initial layer:      0,245
+    wall thickness:     1,05 (= 3* nozzle dia)
+    top/bottom thickness:    0,7
+    build plate:        brim
+        brim width:     6mm
+        brim only on outside
+    infill:             50%
+        pattern:        gyroid
+    no support
+    no alternate skin rotation
+    no adaptive layers
+
+You'll need 3 bolts M3x12 (M3x15) for endstop adjustment.
+No need to cut the threads
+The endstop actuator should sit pretty tight in the belt catch block.
 
