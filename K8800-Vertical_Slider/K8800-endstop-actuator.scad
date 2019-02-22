@@ -35,7 +35,7 @@ _ES_TOE_Z = 7.5;
 
 _ES_ENDSTOP_X = 3.5;
 _ES_ENDSTOP_Y = _ES_TOE_Y + 7.75;   // from K8800_VS...
-_ES_ENDSTOP_Z = 7.5;
+_ES_ENDSTOP_Z = 7.5;                // height of ES flag
 
 
 /*  inherit from parent...
@@ -96,7 +96,7 @@ module K8800_ES_Mask(
         
         color("orange")
         translate([-_ES_endstop_x/2,_ES_toe_y,_ES_toe_z])
-            cube(size=[_ES_endstop_x,_D_WALL+_ES_endstop_y/2,_ES_endstop_z]);
+            cube(size=[_ES_endstop_x,2*_D_WALL+_ES_endstop_y/2,_ES_endstop_z]);
     }
 }
 
@@ -147,28 +147,3 @@ module K8800_ES_Block(
 )
 {
 }
-
-/* ----------------------
- * debug relicts...
- * ---------------------- 
-K8800_2D_ToeShape();
- color("green") {
-    echo("K8800_ES_Mask();");
-    translate([10,0,0])
-    K8800_ES_Mask();
-}
-
-K8800_ES_Endstop(_ES_cld=0);        
-//translate([5,0,_ES_TOE_Z-0.10])
-//     hole_threaded(name="M3", thread="modeled",l=_ES_TOE_Z+0.2,$fn=60);
- color("orange")
-    translate([-_ES_ENDSTOP_X/2,_ES_TOE_Y,_ES_TOE_Z])
-        cube(size=[_ES_ENDSTOP_X,_D_WALL+_ES_ENDSTOP_Y/2,_ES_ENDSTOP_Z]);
-
- color("red")
-    difference() {
-        K8800_ES_Mask();       
-        K8800_ES_Endstop(_ES_cld=0.0);  
- }
- * ---------------------- */
- 
