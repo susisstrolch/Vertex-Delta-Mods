@@ -37,6 +37,9 @@ _ES_ENDSTOP_X = 3.5;
 _ES_ENDSTOP_Y = _ES_TOE_Y + 7.75;   // from K8800_VS...
 _ES_ENDSTOP_Z = 7.5;                // height of ES flag
 
+_ES_FLAG_X = 2.0;       // width of the ES flag
+_ES_FLAG_Y = _ES_ENDSTOP_Y; 
+_ES_FLAG_Z = 7.5;       // height of the ES flag
 
 /*  inherit from parent...
 _D_NOZZLE           = 0.35;
@@ -57,9 +60,9 @@ function get_ES__ES_TOE_X() = _ES_TOE_X;
 
 module K8800_2D_ToeShape(
     _ES_endstop_x = _ES_ENDSTOP_X,
+    _ES_endstop_y = _ES_ENDSTOP_Y,  // should fit for M3 screw / bold
     _ES_toe_x = _ES_TOE_X,          // should fit for M3 screw / bold
     _ES_toe_y = _ES_TOE_Y,
-    _ES_endstop_y = _ES_ENDSTOP_Y,  // should fit for M3 screw / bold
     cld=_D_HCLD) {
 
     endstop_x2 = _ES_endstop_x/2;
@@ -77,12 +80,12 @@ module K8800_2D_ToeShape(
 }
 
 module K8800_ES_Mask(
-    _ES_endstop_x = _ES_ENDSTOP_X,
-    _ES_toe_x = _ES_TOE_X,          // should fit for M3 screw / bold
+    _ES_toe_x = _ES_TOE_X,      // should fit for M3 screw / bold
     _ES_toe_y = _ES_TOE_Y,
     _ES_toe_z = _ES_TOE_Z,
-    _ES_endstop_y = _ES_ENDSTOP_Y,  // should fit for M3 screw / bold
-    _ES_endstop_z = _ES_ENDSTOP_Z,
+    _ES_flag_x = _ES_FLAG_X,
+    _ES_flag_y = _ES_FLAG_Y,    // should fit for M3 screw / bold
+    _ES_flag_z = _ES_FLAG_Z,
     _ES_hcld = _D_HCLD,
     _ES_vcld = _D_VCLD
 ) {
@@ -95,8 +98,8 @@ module K8800_ES_Mask(
                 K8800_2D_ToeShape();
         
         color("orange")
-        translate([-_ES_endstop_x/2,_ES_toe_y,_ES_toe_z])
-            cube(size=[_ES_endstop_x,2*_D_WALL+_ES_endstop_y/2,_ES_endstop_z]);
+        translate([-_ES_flag_x/2,_ES_toe_y,_ES_toe_z])
+            cube(size=[_ES_flag_x,2*_D_WALL+_ES_flag_y/2,_ES_flag_z]);
     }
 }
 
@@ -105,8 +108,9 @@ module K8800_ES_Endstop(
     _ES_toe_x = _ES_TOE_X,        // should fit for M3 screw / bold
     _ES_toe_y = _ES_TOE_Y,
     _ES_toe_z = _ES_TOE_Z,
-    _ES_endstop_y = _ES_ENDSTOP_Y,    // should fit for M3 screw / bold
-    _ES_endstop_z = _ES_ENDSTOP_Z,
+    _ES_flag_x = _ES_FLAG_X,
+    _ES_flag_y = _ES_FLAG_Y,    // should fit for M3 screw / bold
+    _ES_flag_z = _ES_FLAG_Z,
     _ES_vcld = _D_VCLD,
     _ES_hcld = _D_HCLD,
     _ES_marker = _T_MARKER,		// marker text on endstop side
@@ -116,12 +120,12 @@ module K8800_ES_Endstop(
     color("red")
     difference() {
         K8800_ES_Mask(
-            _ES_endstop_x = _ES_endstop_x,
-            _ES_endstop_y = _ES_endstop_y,
+            _ES_flag_x = _ES_flag_x,
+            _ES_flag_y = _ES_flag_y,
+            _ES_flag_z = _ES_FLAG_Z,
             _ES_toe_x = _ES_toe_x,          // should fit for M3 screw + _D_WALL
             _ES_toe_y = _ES_toe_y,          // dito...
             _ES_toe_z = _ES_toe_z,          
-            _ES_endstop_z = _ES_ENDSTOP_Z,
             _ES_hcld = _ES_hcld,
             _ES_vcld = _ES_vcld
         );

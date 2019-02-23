@@ -20,8 +20,10 @@ _D_NOZZLE_3 = _D_NOZZLE *3 / 4;
 _M_WALL           = 3;
 
 // ---------------------------------
-// endstop actuator clearance multiplicator (base:_D_NOZZLE_4)
-_D_ENDSTOP_TOE    = 2; 
+// endstop actuator clearance multiplicator (base:_D_NOZZLE)
+_CLD_ES_TOE  = 0.3   ; 
+// height of endstop actuator flag - must be >3.5mm
+_H_ES_FLAG = 5;
 // optimistic clearing distance
 _F_CLD            = 4;
 // horizontal clearing distance
@@ -111,8 +113,8 @@ module bearingBlock2D(){
 module ziptie_cutout() {
     // cut out on the backside of VSBlock
     // zip-tie diameter: 1.5x3 (wxh)
-    tie_w = 1.5;    // tie-wrap slot width
-    tie_h = 3;      // tie-wrap slot height
+    tie_w = 2.5;    // tie-wrap slot width
+    tie_h = 3.5;      // tie-wrap slot height
     tie_a = 60;     // angle in degrees
     
     // we set the tie slot approx. 1mm away from bearing outside
@@ -222,7 +224,7 @@ module BCBlock(h=_VS_BELTCATCH_HEIGHT,
         
         // punch out for endstop 
         translate([0,-get_ES_depth(),h/2])
-            K8800_ES_Mask(_F_HCLD);
+            K8800_ES_Mask(_ES_hcld = _CLD_ES_TOE*_D_NOZZLE);
         
         // optional _T_MARKER
         if (_T_MARKER != "none") {
@@ -276,20 +278,13 @@ module K8800_VS() {
 /* ==============================
  * the endstop actuator
  * ============================== */
-module K8800_VS_Endstop(
-    cld=_D_CLD,
-    thread=_ES_HOLE_THREAD,
-    text="none") {
-        K8800_ES_Endstop(_ES_hcld=cld,_ES_thread=thread,_ES_marker=text);
-}
-
 module K8800_VS_Endstop_actuator(
     cld=_D_CLD,
     thread=_ES_HOLE_THREAD,
     text="none") {
     translate([0,-5+get_ES__ES_TOE_Y(),get_ES__ES_TOE_Z()])
         rotate([0,0,180])
-        K8800_VS_Endstop(cld=cld,thread=_ES_HOLE_THREAD,text=text);
+        K8800_ES_Endstop(_ES_hcld=cld,_ES_thread=_ES_HOLE_THREAD,_ES_marker=text,_ES_flag_z=_H_ES_FLAG);
 }
     
 /* ==============================
