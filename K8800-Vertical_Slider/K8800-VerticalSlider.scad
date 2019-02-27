@@ -42,7 +42,7 @@ _ES_HOLE_THREAD     = "no";
 _ES_HOLE_CLTD       = _D_NOZZLE_1;  // 1/4 nozzle
 
 // clearing distance for M5 nut catch
-_ES_HOLE_CLNC       = _D_NOZZLE_2;  // 1/2 nozzle
+_ES_HOLE_CLNC       = _D_NOZZLE_3;  // 3/4 nozzle
 
 // bearing type
 _VS_LINEAR_BEARING  = "RJ4JP-01-10";
@@ -113,8 +113,8 @@ module bearingBlock2D(){
 module ziptie_cutout() {
     // cut out on the backside of VSBlock
     // zip-tie diameter: 1.5x3 (wxh)
-    tie_w = 2.5;    // tie-wrap slot width
-    tie_h = 3.5;      // tie-wrap slot height
+    tie_w = 3;    // tie-wrap slot width
+    tie_h = 4;    // tie-wrap slot height
     tie_a = 60;     // angle in degrees
     
     // we set the tie slot approx. 1mm away from bearing outside
@@ -346,10 +346,3 @@ if (_PRINT_ES_TEST=="true") {
         K8800_VS();
 }
  
-*    VSBlock();
-*    color("blue") {
-        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)])
-            ziptie_cutout();
-        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)+_get_flange_B(_VS_LINEAR_BEARING)-_get_ring_w(_VS_LINEAR_BEARING)])
-            ziptie_cutout();
-    }
