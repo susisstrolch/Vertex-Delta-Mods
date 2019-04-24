@@ -396,9 +396,9 @@ module bearingBlock2D(){
                 circle(d=10);
             translate([-(_VS_DIST_ROD_ROD2-10),-20])
                 circle(d=6);
-            translate([-0,-19,0])
+           translate([-0,-19,0])
                 circle(d=8);
-            translate([-0,-15,0])
+            translate([-0,-10,0])
                 circle(d=8);
             
       }
@@ -437,40 +437,7 @@ module H_BlockCarve(y=0){
     }
 }
 
-module H_Block() {
-    difference() {
-        H_BearingBlock();
-        translate([0,0,8])
-            H_BlockCarve();
-       translate([0,0,-79])
-            H_BlockCarve();
-       translate([-16.5,-9,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([-17.5,-12,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([+16.5,-9,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([+17.5,-12,-_center])
-            cylinder(d=6.5,h=_hDiff);
-        
-    }
-}
-
-module H_BlockShape() {
-    projection(cut = false) H_Block();
-}
-
 module H_Block_Slider() {
-  /*  
-       translate([-16.5,-9,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([-17.5,-12,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([+16.5,-9,-_center])
-            cylinder(d=6.5,h=_hDiff);
-       translate([+17.5,-12,-_center])
-            cylinder(d=6.5,h=_hDiff);
-*/
     translate([0,0,-_center])
         union() {
             translate([-_VS_DIST_ROD_ROD2,0,-0.1])
@@ -481,33 +448,54 @@ module H_Block_Slider() {
 
 }
 
+module H_BlockShape() {
+    bearingBlock2D();
+    mirror([-1,0,0]) bearingBlock2D();
+}
+
 /* solid VS slider */
-module H_VS_Block(){
+module H_Block(){
     difference(){
       H_BearingBlock();
       translate([0,0, 9.999]) H_BlockCarve();
       translate([0,0,-81]) H_BlockCarve();
-      translate([0,0,_center]) pylon();
-      // cut remaining stands from pylon
-*      translate([-16.5,-9,-_center]) cylinder(d=6.5,h=_hDiff);
-*      translate([+16.5,-9,-_center]) cylinder(d=6.5,h=_hDiff);
-      translate([-15.5,-15,-_center]) 
-       #rotate([0,0,55])
-        cube([10,7.5,_hDiff]);
-      mirror([-1,0,0])
-       translate([-15.5,-15,-_center]) 
-       #rotate([0,0,55])
-        cube([10,7.5,_hDiff]);
-       
-        
-      translate([-17.5,-12,-_center]) cylinder(d=6.5,h=_hDiff);
-      translate([+17.5,-12,-_center]) cylinder(d=6.5,h=_hDiff);
     }
 }
 
+module parked() {
+    difference() {
+        H_Block();
+      translate([0,0,_center]) pylon();
+      // cut remaining stands from pylon
+      translate([-15.5,-15,-_hDiff/2]) 
+        rotate([0,0,55])
+          cube([10,7.5,_hDiff]);
+       mirror([-1,0,0])
+         translate([-15.5,-15,-_hDiff/2]) 
+           rotate([0,0,55])
+             cube([10,7.5,_hDiff]);
+      translate([-17.5,-12,-_hDiff/2]) cylinder(d=6.5,h=_hDiff);
+      translate([+17.5,-12,-_hDiff/2]) cylinder(d=6.5,h=_hDiff);
+        
+    }
+}
+
+module H_VS_Block() {
+  color("orange") 
+  H_Block();
+  translate([0,-0,10]) color("blue")
+    linear_extrude(height=45, convexity = 10,twist=0,slices=45,scale=[1,0.5])
+      H_BlockShape();
+
+  translate([0,-0,-25]) color("blue")
+    rotate([0,180,0])
+      linear_extrude(height=30, convexity = 10,twist=0,slices=45,scale=[1,0.5])
+        H_BlockShape();
+}
+
 *color("cyan") translate([0,0,75])
-  H_BlockShape();
+              bearingBlock2D();
 #color("blue") translate([0,0,-8])
   BCBlock(_VS_BELTCATCH_HEIGHT);
-color("orange") 
-  H_VS_Block();
+
+H_VS_Block();
