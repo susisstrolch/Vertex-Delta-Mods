@@ -1,0 +1,72 @@
+echo:Marlin 1.1.9
+
+echo: Last Updated: 2018-08-01 | Author: riodoro1
+echo:Compiled: May  2 2019
+echo: Free Memory: 2324  PlannerBufferBytes: 1488
+echo:V55 stored settings retrieved (763 bytes; crc 46630)
+echo:  G21    ; (mm)
+echo:  M149 C ; Units in Celsius
+
+echo:Filament settings: Disabled
+echo:  M200 D1.75
+echo:  M200 D0
+echo:Steps per unit:
+echo:  M92 X116.36 Y116.36 Z116.36 E154.30
+echo:Maximum feedrates (units/s):
+echo:  M203 X500.00 Y500.00 Z500.00 E25.00
+echo:Maximum Acceleration (units/s2):
+echo:  M201 X4500 Y4500 Z4500 E5000
+echo:Acceleration (units/s2): P<print_accel> R<retract_accel> T<travel_accel>
+echo:  M204 P2000.00 R2000.00 T2000.00
+echo:Advanced: Q<min_segment_time_us> S<min_feedrate> T<min_travel_feedrate> J<junc_dev>
+echo:  M205 Q20000 S0.00 T0.00 J0.02
+echo:Auto Bed Leveling:
+echo:  M420 S0 Z10.00
+echo:  G29 W I0 J0 Z-0.61265
+echo:  G29 W I1 J0 Z-0.69424
+echo:  G29 W I2 J0 Z-0.60711
+echo:  G29 W I3 J0 Z-0.50007
+echo:  G29 W I4 J0 Z-0.55793
+echo:  G29 W I0 J1 Z-0.57720
+echo:  G29 W I1 J1 Z-0.39643
+echo:  G29 W I2 J1 Z-0.43450
+echo:  G29 W I3 J1 Z-0.45229
+echo:  G29 W I4 J1 Z-0.63450
+echo:  G29 W I0 J2 Z-0.48906
+echo:  G29 W I1 J2 Z-0.38272
+echo:  G29 W I2 J2 Z-0.40163
+echo:  G29 W I3 J2 Z-0.41065
+echo:  G29 W I4 J2 Z-0.49120
+echo:  G29 W I0 J3 Z-0.38594
+echo:  G29 W I1 J3 Z-0.39813
+echo:  G29 W I2 J3 Z-0.37029
+echo:  G29 W I3 J3 Z-0.41318
+echo:  G29 W I4 J3 Z-0.39692
+echo:  G29 W I0 J4 Z-0.43838
+echo:  G29 W I1 J4 Z-0.53190
+echo:  G29 W I2 J4 Z-0.42611
+echo:  G29 W I3 J4 Z-0.36464
+echo:  G29 W I4 J4 Z-0.34351
+echo:Endstop adjustment:
+echo:  M666 X0.00 Y-0.02 Z-0.02
+echo:Delta settings: L<diagonal_rod> R<radius> H<height> S<segments_per_s> B<calibration radius> XYZ<tower angle corrections>
+echo:  M665 L207.00 R108.08 H315.94 S120.00 B80.00 X0.00 Y0.00 Z0.00
+echo:Material heatup parameters:
+echo:  M145 S0 H200 B70 F255
+echo:  M145 S1 H250 B100 F255
+echo:PID settings:
+echo:  M301 P16.15 I1.49 D43.65
+echo:LCD Contrast:
+echo:  M250 C30
+echo:Retract: S<length> F<units/m> Z<lift>
+echo:  M207 S3.00 W13.00 F2700.00 Z0.00
+echo:Recover: S<length> F<units/m>
+echo:  M208 S0.00 W0.00 F480.00
+echo:Auto-Retract: S=0 to disable, 1 to interpret E-only moves as retract/recover
+echo:  M209 S0
+echo:Z-Probe Offset (mm):
+echo:  M851 Z0.00
+echo:Filament load/unload lengths:
+echo:  M603 L650.00 U700.00
+echo:SD card ok
+

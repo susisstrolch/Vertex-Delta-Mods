@@ -1,0 +1,35 @@
+==========	3D Druckparameter	==================================
+0.6	NozzleSize	Düsendurchmesser
+0.9	ExtMult	Extrusion Multiplier
+0.54	NozzeWidth	Extrusion width
+3	numPerimeter	Anzahl der Perimeter
+1.08	Flesh	Zusätzlicher Material
+==========	Bronzelager	==================================
+10	bearingID	Innendurchmesser Lager
+13	bearingOD	Außendurchmesser Lager
+20	bearingLen	Länge des Lagers
+==========	Mechanik Lager	==================================
+60	distRods	Abstand der Wellen
+10	diaRods	Durchmesser der Wellen
+0.27	clearanceRods	Sicherheitsabstand für diaRods
+==========	Laufbuchse	==================================
+0.27	bushingShrink	radiale Schrumpfung für Laufbuchsen-Pressung
+13	bushingID	Innendurchmesser Laufbuchse
+12.46	bushingID3D	zu druckender Innendurchmesser Laufbuchse
+15.7	bushingOD3D	zu druckender Außendurchmesser Laufbuchse
+6.23	bushingIR3D	effektiver innerer Radius der Laufbuchse
+7.85	bushingOR3D	effektiver äußerer Radius der Laufbuchse
+
+==========	Vertical Slider	==================================
+
+
+
+
+
+
+==========		==================================
+==========		==================================
+==========		==================================
+==========		==================================
+==========		==================================
+==========		==================================

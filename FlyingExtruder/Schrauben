@@ -1,0 +1,10 @@
+2.5	M5RadiusBore	Radius der Bohrungen für M5-Schrauben
+8	M5HexNutWidth	Schlüsselweite der M5-Muttern
+4	M5HexNutHeight	Höhe der M5-Muttern
+4.7	M5HexHeadRadius	Radius des Schraubenkopfes
+5.1	M5HexHeadHeight	Höhe des Schraubenkopfes
+6	M5InsertHeight	Höhe des Insert
+6.3	M5InserWidth	Durchmesser (Taille) des Insert
+8.25	MCThreadLength	Gewindelänge der Magnetic Cups
+4.8	MCHeadHeight	Kopfhöhe der Magentic Cups
+4.25	MCHeadRadius	Radius des Magnetic Cups

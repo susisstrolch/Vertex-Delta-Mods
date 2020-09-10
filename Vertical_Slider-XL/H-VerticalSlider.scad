@@ -4,8 +4,8 @@ include <nutsnbolts/cyl_head_bolt.scad>;
 include <linear_bearing.scad>;
 include <endstop-actuator.scad>
 
-$fa=0.1;
-$fs=0.1;
+$fa=0.2;
+$fs=0.2;
 
 // _Dxxxx: diameter / distance, absolute, mm
 // _Fxxxx: fraction of nozzle diameter
@@ -19,7 +19,7 @@ _D_NOZZLE_2 = _D_NOZZLE *2 / 4;
 _D_NOZZLE_3 = _D_NOZZLE *3 / 4;
 
 // #perimeters (base: nozzle dia.)
-_M_WALL           = 3;
+_M_WALL     = 3;
 
 // ---------------------------------
 // endstop actuator clearance multiplicator (base:_D_NOZZLE)
@@ -59,10 +59,10 @@ _PRINT_BEARINGBLOCK = "false";
 _PRINT_ES_ACTUATOR  = "false";
 // print endstop actuator test
 _PRINT_ES_TEST      = "false";
+
 // length of bearing leg
 _hLeg=110;
 _hDiff= _hLeg*2.01/2;
-
 _center=_hLeg/2;
 
 module fixed_values() {
@@ -123,59 +123,13 @@ module ziptie_cutout() {
 };
 
 /* ------------------------------
- * carve outs for single leg
-  ------------------------------ */
-module carveOutLeg() {
-    {
-        linear_extrude(height=_hLeg, convexity = 10)
-            bearingBlock2D();
-        union() {
-            color("red")
-            translate([-_VS_DIST_ROD_ROD2,-22.5,_Y_MC_bold])
-                rotate([90,0,0])
-                    hole_through(name="M5",l=_L_MC_bold,h=_H_NH);
-
-            color("blue")
-            translate([-_VS_DIST_ROD_ROD2,-(_MC_NC_dist),_Y_MC_bold])
-                rotate([90,0,0])
-                    nutcatch_parallel(name="M5",l=_H_NH + _MC_NC_inset, clk=_ES_HOLE_CLNC);
-            
-            // punch out the bearing
-            color("lightgrey")
-            translate([-_VS_DIST_ROD_ROD2,0,h/2])
-               linear_bearing(
-                    type=_VS_LINEAR_BEARING,
-                    cld  =  _D_NOZZLE_1, sl = 3.0, sb = 1.5
-                );
-        }
-         // upper and lower zip-tie slot...
-        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)])
-            ziptie_cutout();
-        translate([-_VS_DIST_ROD_ROD2,0,_get_flange_h0(_VS_LINEAR_BEARING)+_get_flange_B(_VS_LINEAR_BEARING)-_get_ring_w(_VS_LINEAR_BEARING)])
-            ziptie_cutout();
-    }
-    
-    // put in MC and nut...
-#           color("blue")
-            translate([-_VS_DIST_ROD_ROD2,-(_MC_NC_dist),_Y_MC_bold])
-                rotate([90,0,0])
-                    nutcatch_parallel(name=_type,clk=_ES_HOLE_CLNC);
-    
-    // slider...
-#    cylinder();
-}
-/* ------------------------------
  * a single block, carved out
   ------------------------------ */
 module VSBlock(h=31) {
     _MC_type="M5";      // MC clip is M5...
     _L_MC_bold=8.5;     // length of MC clip shaft
-    
     _Y_MC_bold=21;      // Y-offset for MC bold
-
-//	_df   = _get_fam(name=_MC_type);
-//	_H_NH = _df[_NB_F_NUT_HEIGHT];
-    _H_NH = 4.7;
+    _H_NH = 4.7;        // dia nuthole
     
 /* the nuthole catch min. Y distance for punch:
            _get_outer_dia(_VS_LINEAR_BEARING)/2 +
@@ -392,14 +346,18 @@ module bearingBlock2D(){
       hull(){
            translate([-_VS_DIST_ROD_ROD2,-1,0])
                 circle(d=27);
+            translate([-(_VS_DIST_ROD_ROD2-15),0])
+                circle(d=3);
             translate([-(_VS_DIST_ROD_ROD2+2),-12.5,0])
                 circle(d=10);
             translate([-(_VS_DIST_ROD_ROD2-10),-20])
                 circle(d=6);
-           translate([-0,-19,0])
-                circle(d=8);
+         
+          
+           translate([-0,-22,0])
+                circle(d=2);
             translate([-0,-10,0])
-                circle(d=8);
+                circle(d=2);
             
       }
       translate([-17.5,-7]) 
@@ -412,7 +370,7 @@ module bearingBlock2D(){
 module H_BearingBlock() {
   translate([0,0,-_center])
     union() {
-        linear_extrude(height=_hLeg, convexity = 10)
+       linear_extrude(height=_hLeg, convexity = 10)
             bearingBlock2D();
         mirror([-1,0,0])
             linear_extrude(height=_hLeg, convexity = 10)
@@ -429,21 +387,30 @@ module H_BlockCarve(y=0){
     difference() {
         h=_hLeg/2;
         translate([-45,-23,y])
-            cube([90,30,h]);
+            cube([90,35,h]);
         translate([-_VS_DIST_ROD_ROD2-0.5,-0.7,y])
-            cylinder(r=13.5,h=h);
+            cylinder(r=13,h=h);
         translate([_VS_DIST_ROD_ROD2+0.5,-0.7,y])
-            cylinder(r=13.5,h=h);
+            cylinder(r=13,h=h);
     }
 }
 
-module H_Block_Slider() {
-    translate([0,0,-_center])
-        union() {
-            translate([-_VS_DIST_ROD_ROD2,0,-0.1])
-                cylinder(d=11,h=_hDiff);
-            translate([_VS_DIST_ROD_ROD2,0,-0.1])
-                cylinder(d=11,h=_hDiff);
+/* solid VS slider */
+module H_Block(){
+    difference(){
+      H_BearingBlock();
+      translate([0,0, 10.0]) H_BlockCarve();
+      translate([0,0,-81]) H_BlockCarve();
+    }
+}
+
+module H_Block_Rods() {
+    _d=12.0;
+    translate([0,0,-_center]) {
+        translate([-_VS_DIST_ROD_ROD2,0,-0.1])
+            cylinder(d=_d,h=_hDiff);
+        translate([_VS_DIST_ROD_ROD2,0,-0.1])
+            cylinder(d=_d,h=_hDiff);
         }
 
 }
@@ -453,49 +420,108 @@ module H_BlockShape() {
     mirror([-1,0,0]) bearingBlock2D();
 }
 
-/* solid VS slider */
-module H_Block(){
-    difference(){
-      H_BearingBlock();
-      translate([0,0, 9.999]) H_BlockCarve();
-      translate([0,0,-81]) H_BlockCarve();
+module hood(_h=45,_r1=22.5,_r2=13.5){
+//    $fn=256;
+    intersection() {
+      linear_extrude(height=45, convexity = 10,twist=0,slices=20,scale=[1,0.65])
+        H_BlockShape();
+      union() {
+        translate([-_VS_DIST_ROD_ROD2,0,0])
+          cylinder(r1=_r1, r2=_r2,h=_h);     
+        mirror([-1,0,0])
+          translate([-_VS_DIST_ROD_ROD2,0,0])
+            cylinder(r1=_r1, r2=_r2,h=_h);     
+      }
     }
 }
 
-module parked() {
+// erase artefacts from pylon diff op
+module eraser_01(){
+    hull(){
+      translate([-17.5,-12,0])
+        circle(d=6.5);
+       translate([-14,-5,0])
+        circle(d=6.5);
+   }
+}
+
+// make nuts for MC accessible
+module eraser_02(xs=_VS_DIST_ROD_ROD2){
+    $fn=128;
+    _d1=30; _d1Yoff=-5.0;
+#    translate([xs,_d1/2 + _d1Yoff])
+      sphere(d=_d1);
+}
+
+/* VS Block, carved out for pylon and rods */
+module H_VS_carvedBlock() {
+    $fn=128;
+    _r1=22.5;
+    _r2=13.5;
+    
     difference() {
+      union() {
         H_Block();
+        // top
+        translate([0,0,10])
+          hood(_h=45.0,_r1=20.0);
+          
+        // bottom...
+        translate([0,-0,-25]) color("blue")
+          rotate([0,180,0])
+            hood(_h=30.0,_r1=20.0);
+      }
       translate([0,0,_center]) pylon();
       // cut remaining stands from pylon
-      translate([-15.5,-15,-_hDiff/2]) 
-        rotate([0,0,55])
-          cube([10,7.5,_hDiff]);
-       mirror([-1,0,0])
-         translate([-15.5,-15,-_hDiff/2]) 
-           rotate([0,0,55])
-             cube([10,7.5,_hDiff]);
-      translate([-17.5,-12,-_hDiff/2]) cylinder(d=6.5,h=_hDiff);
-      translate([+17.5,-12,-_hDiff/2]) cylinder(d=6.5,h=_hDiff);
-        
+      translate([0,0,-_hDiff/2]) {
+      linear_extrude(height=_hDiff, convexity = 10)
+        eraser_01();
+      mirror([-1,0,0])
+        linear_extrude(height=_hDiff, convexity = 10)
+          eraser_01();
+      }
+      H_Block_Rods();
     }
+    /** 
+        belt catch block and alignment tab
+     **/
+    _bcbZoff = -0.8;    // Z-Offset
+    _bcbXoff = -15.0;   // X-Offset
+    
+    translate([0,_bcbXoff,_bcbZoff])
+      cube([_VS_BELTCATCH_WIDTH,_VS_BELTCATCH_DEPTH,_VS_BELTCATCH_HEIGHT],center=true);
+        
+    // Belt catch alignment tab
+    toe_x = 3.2; toe_y = 2.7; toe_z = 6.75;
+    toe_r = toe_y/2;
+    #translate([-toe_r,-0.1+_bcbXoff+_VS_BELTCATCH_DEPTH/2,toe_z-toe_r-_VS_BELTCATCH_HEIGHT/2+_bcbZoff])
+    rotate([-90,0,0])
+    linear_extrude(height=toe_x)
+        union() {
+            square(size=[toe_y,toe_z-toe_r]);
+            translate([toe_r,0,0])
+                circle(d=toe_y);
+        };
 }
 
-module H_VS_Block() {
-  color("orange") 
-  H_Block();
-  translate([0,-0,10]) color("blue")
-    linear_extrude(height=45, convexity = 10,twist=0,slices=45,scale=[1,0.5])
-      H_BlockShape();
-
-  translate([0,-0,-25]) color("blue")
-    rotate([0,180,0])
-      linear_extrude(height=30, convexity = 10,twist=0,slices=45,scale=[1,0.5])
-        H_BlockShape();
+module H_VS_BearingPunch(){
 }
 
-*color("cyan") translate([0,0,75])
-              bearingBlock2D();
-#color("blue") translate([0,0,-8])
-  BCBlock(_VS_BELTCATCH_HEIGHT);
+module H_VS_Cutouts(){
+    eraser_02(xs=_VS_DIST_ROD_ROD2);
+    mirror([-1,0,0])
+    eraser_02(xs=_VS_DIST_ROD_ROD2);
+}
 
-H_VS_Block();
+difference() {
+  H_VS_carvedBlock();
+  H_VS_Cutouts();
+  H_VS_BearingPunch();
+}
+
+
+*union(){
+    bearingBlock2D();
+    mirror([-1,0,0])
+      bearingBlock2D();
+}
